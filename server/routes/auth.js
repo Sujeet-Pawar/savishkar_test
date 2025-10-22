@@ -141,6 +141,7 @@ router.post('/signup', signupLimiter, [
 
     // Send OTP email asynchronously (non-blocking)
     setImmediate(async () => {
+      console.log('📤 Starting email send process for:', user.email);
       try {
         await sendEmail({
           email: user.email,
@@ -159,10 +160,13 @@ router.post('/signup', signupLimiter, [
             </div>
           `
         });
-        console.log('✅ Email sent successfully to', user.email);
+        console.log('✅ OTP Email sent successfully to', user.email);
       } catch (emailError) {
-        console.error('❌ Email error:', emailError.message);
-        console.log('⚠️ Email failed but OTP is logged in console. User can still verify.');
+        console.error('❌ OTP Email failed for', user.email);
+        console.error('❌ Error type:', emailError.name);
+        console.error('❌ Error message:', emailError.message);
+        console.error('❌ Full error:', emailError);
+        console.log('⚠️ Email failed but OTP is logged above. User can still verify.');
       }
     });
   } catch (error) {
@@ -251,6 +255,7 @@ router.post('/verify-otp', async (req, res) => {
 
     // Send welcome email asynchronously (non-blocking)
     setImmediate(async () => {
+      console.log('📤 Starting welcome email send process for:', user.email);
       try {
         await sendEmail({
           email: user.email,
@@ -281,9 +286,12 @@ router.post('/verify-otp', async (req, res) => {
             </div>
           `
         });
-        console.log('✅ Welcome email with user code sent to', user.email);
+        console.log('✅ Welcome email sent successfully to', user.email);
       } catch (emailError) {
-        console.error('❌ Welcome email error:', emailError.message);
+        console.error('❌ Welcome email failed for', user.email);
+        console.error('❌ Error type:', emailError.name);
+        console.error('❌ Error message:', emailError.message);
+        console.error('❌ Full error:', emailError);
       }
     });
   } catch (error) {
