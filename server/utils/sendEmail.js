@@ -1,5 +1,15 @@
 import nodemailer from 'nodemailer';
 
+// Helper function to add timeout to promises
+const withTimeout = (promise, timeoutMs) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email operation timed out')), timeoutMs)
+    )
+  ]);
+};
+
 const sendEmail = async (options) => {
   try {
     // Check if email configuration exists
@@ -24,12 +34,11 @@ const sendEmail = async (options) => {
       },
       tls: {
         rejectUnauthorized: false // For development only
-      }
+      },
+      connectionTimeout: 5000, // 5 second connection timeout
+      greetingTimeout: 5000,   // 5 second greeting timeout
+      socketTimeout: 10000      // 10 second socket timeout
     });
-
-    // Verify connection
-    await transporter.verify();
-    console.log('✅ Email server connection verified');
 
     // Email options
     const mailOptions = {
@@ -39,8 +48,12 @@ const sendEmail = async (options) => {
       html: options.html
     };
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
+    // Send email with timeout (10 seconds max)
+    const info = await withTimeout(
+      transporter.sendMail(mailOptions),
+      10000
+    );
+    
     console.log('✅ Email sent successfully:', info.messageId);
     console.log('✅ Email sent to:', options.email);
     

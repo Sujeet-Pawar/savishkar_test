@@ -32,6 +32,49 @@ const app = express();
 // Connect to database
 connectDB();
 
+// Check email configuration on startup
+const checkEmailConfig = async () => {
+  try {
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.log('⚠️  Email: NOT CONFIGURED');
+      console.log('   Missing environment variables: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS');
+      if (process.env.NODE_ENV === 'production') {
+        console.log('   ⚠️  WARNING: Email features will not work in production!');
+      }
+      return;
+    }
+
+    // Import nodemailer to verify connection
+    const nodemailer = (await import('nodemailer')).default;
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    await transporter.verify();
+    console.log('✅ Email: CONFIGURED');
+    console.log(`   Host: ${process.env.EMAIL_HOST}`);
+    console.log(`   User: ${process.env.EMAIL_USER}`);
+  } catch (error) {
+    console.log('❌ Email: CONNECTION FAILED');
+    console.log(`   Error: ${error.message}`);
+    if (error.message.includes('Invalid login')) {
+      console.log('   💡 For Gmail: Use App Password, not regular password');
+      console.log('   💡 Generate at: https://myaccount.google.com/apppasswords');
+    }
+  }
+};
+
+checkEmailConfig();
+
 // Check Cloudinary configuration
 const useCloudinary = process.env.USE_CLOUDINARY === 'true' && 
                       process.env.CLOUDINARY_CLOUD_NAME && 
