@@ -24,20 +24,21 @@ const sendEmail = async (options) => {
     console.log('📧 Using email user:', process.env.EMAIL_USER);
 
     // Create transporter
+    const port = parseInt(process.env.EMAIL_PORT) || 587;
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false, // true for 465, false for other ports
+      port: port,
+      secure: port === 465, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
       tls: {
-        rejectUnauthorized: false // For development only
+        rejectUnauthorized: false
       },
-      connectionTimeout: 5000, // 5 second connection timeout
-      greetingTimeout: 5000,   // 5 second greeting timeout
-      socketTimeout: 10000      // 10 second socket timeout
+      connectionTimeout: 30000, // 30 second connection timeout (increased for Render cold starts)
+      greetingTimeout: 30000,   // 30 second greeting timeout
+      socketTimeout: 45000      // 45 second socket timeout
     });
 
     // Email options
@@ -48,10 +49,10 @@ const sendEmail = async (options) => {
       html: options.html
     };
 
-    // Send email with timeout (10 seconds max)
+    // Send email with timeout (30 seconds max - increased for Render cold starts)
     const info = await withTimeout(
       transporter.sendMail(mailOptions),
-      10000
+      30000
     );
     
     console.log('✅ Email sent successfully:', info.messageId);

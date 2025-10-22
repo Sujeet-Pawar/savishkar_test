@@ -10,7 +10,8 @@
     "create-admin": "node scripts/createAdmin.js",
     "setup-cloudinary": "node scripts/setupCloudinary.js",
     "verify-cloudinary": "node scripts/verifyCloudinary.js",
-    "test-email": "node scripts/testEmail.js"
+    "test-email": "node scripts/testEmail.js",
+    "diagnose-email": "node scripts/diagnoseEmail.js"
   },
   "keywords": [
     "techfest",
