@@ -13,7 +13,9 @@ import {
   UserPlus,
   Eye,
   RefreshCw,
-  X
+  X,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
@@ -32,6 +34,8 @@ const AdminDashboard = () => {
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [registrationDisabled, setRegistrationDisabled] = useState(false);
+  const [togglingRegistration, setTogglingRegistration] = useState(false);
 
   // Determine active tab from URL
   const getActiveTab = () => {
@@ -47,6 +51,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchRegistrationControl();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -85,6 +90,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchRegistrationControl = async () => {
+    try {
+      const { data } = await API.get('/admin/registration-control');
+      setRegistrationDisabled(data.userRegistrationDisabled);
+    } catch (error) {
+      console.error('Failed to fetch registration control status:', error);
+    }
+  };
+
+  const toggleRegistrationControl = async () => {
+    try {
+      setTogglingRegistration(true);
+      const newState = !registrationDisabled;
+      const { data } = await API.put('/admin/registration-control', { disabled: newState });
+      setRegistrationDisabled(data.userRegistrationDisabled);
+      toast.success(data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to toggle registration control');
+    } finally {
+      setTogglingRegistration(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,12 +130,50 @@ const AdminDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-            <span className="bg-gradient-to-r from-[#FAB12F] to-[#FA812F] bg-clip-text text-transparent">
-              Admin Dashboard
-            </span>
-          </h1>
-          <p style={{ color: '#5C4033' }}>Manage events, registrations, and payments</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                <span className="bg-gradient-to-r from-[#FAB12F] to-[#FA812F] bg-clip-text text-transparent">
+                  Admin Dashboard
+                </span>
+              </h1>
+              <p style={{ color: '#5C4033' }}>Manage events, registrations, and payments</p>
+            </div>
+            
+            {/* Registration Control Toggle */}
+            <button
+              onClick={toggleRegistrationControl}
+              disabled={togglingRegistration}
+              className="flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={registrationDisabled 
+                ? { 
+                    background: 'linear-gradient(to right, #DC2626, #991B1B)',
+                    color: 'white'
+                  }
+                : {
+                    background: 'linear-gradient(to right, #16A34A, #15803D)',
+                    color: 'white'
+                  }
+              }
+              title={registrationDisabled ? 'Click to enable user registration' : 'Click to disable user registration'}
+            >
+              {togglingRegistration ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : registrationDisabled ? (
+                <Lock className="w-5 h-5" />
+              ) : (
+                <Unlock className="w-5 h-5" />
+              )}
+              <div className="text-left">
+                <div className="text-sm font-bold">
+                  {registrationDisabled ? 'Registration Disabled' : 'Registration Enabled'}
+                </div>
+                <div className="text-xs opacity-90">
+                  {registrationDisabled ? 'Users cannot register' : 'Users can register'}
+                </div>
+              </div>
+            </button>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -336,6 +402,18 @@ const EventsManagement = ({ events, onUpdate }) => {
       if (interval) clearInterval(interval);
     };
   }, [viewingRegistrations, autoRefresh]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (viewingRegistrations) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [viewingRegistrations]);
 
   const fetchRegistrations = async (eventId) => {
     try {
@@ -749,6 +827,18 @@ const PaymentsManagement = ({ registrations, onUpdate, events }) => {
   useEffect(() => {
     fetchPayments();
   }, []);
+
+  // Lock body scroll when screenshot modal is open
+  useEffect(() => {
+    if (showScreenshot) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showScreenshot]);
 
   const fetchPayments = async () => {
     try {

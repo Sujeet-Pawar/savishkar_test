@@ -22,6 +22,7 @@ import userRoutes from './routes/users.js';
 import paymentRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import testRoutes from './routes/test.js';
+import rulebookRoutes from './routes/rulebook.js';
 
 // Load environment variables
 dotenv.config();
@@ -83,13 +84,19 @@ const checkEmailConfig = async () => {
       socketTimeout: 45000
     });
 
-    await transporter.verify();
+    // Verify connection with timeout (don't block server startup)
+    const verifyPromise = transporter.verify();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Verification timeout')), 10000)
+    );
+    
+    await Promise.race([verifyPromise, timeoutPromise]);
     
     console.log('✅ Email Server Connected Successfully!');
     console.log(`📧 SMTP Host: ${process.env.EMAIL_HOST}:${port}`);
     console.log(`👤 Sender: ${process.env.EMAIL_USER}`);
     console.log(`🔒 Authentication: Verified`);
-    console.log(`⏱️  Timeouts: Connection(30s), Greeting(30s), Socket(45s)`);
+    console.log(`⏱️  Timeouts: Connection(60s), Greeting(30s), Socket(60s)`);
     console.log('─'.repeat(50));
   } catch (error) {
     console.log('❌ Email Server Connection FAILED!');
@@ -240,6 +247,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/rulebook', rulebookRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

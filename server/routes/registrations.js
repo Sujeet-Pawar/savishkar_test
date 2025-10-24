@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import Registration from '../models/Registration.js';
 import Event from '../models/Event.js';
 import Notification from '../models/Notification.js';
+import Settings from '../models/Settings.js';
 import sendEmail from '../utils/sendEmail.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -14,6 +15,17 @@ const router = express.Router();
 router.post('/', protect, async (req, res) => {
   try {
     const { eventId, teamName, teamMembers } = req.body;
+    
+    // Check if global user registration is disabled (only applies to non-admin users)
+    if (req.user.role !== 'admin') {
+      const userRegistrationDisabled = await Settings.get('user_registration_disabled', 'false');
+      if (userRegistrationDisabled === 'true') {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'User registration is currently disabled by the admin. Please contact the admin for assistance.' 
+        });
+      }
+    }
     
     // Check if event exists
     const event = await Event.findById(eventId);
