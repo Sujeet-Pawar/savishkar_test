@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
 // Helper function to add timeout to promises
 const withTimeout = (promise, timeoutMs) => {
@@ -30,93 +31,111 @@ const retryOperation = async (operation, maxRetries = 3, delay = 2000) => {
   }
 };
 
-const sendEmail = async (options) => {
-  const startTime = Date.now();
-  
+// Send email via Gmail API (OAuth2)
+const sendViaGmail = async (options) => {
   try {
-    // Check if email configuration exists
-    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error('❌ Email configuration missing');
-      console.log('📋 Required variables: EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS');
-      console.log('📋 Current status:');
-      console.log(`   EMAIL_HOST: ${process.env.EMAIL_HOST ? '✅ Set' : '❌ Missing'}`);
-      console.log(`   EMAIL_PORT: ${process.env.EMAIL_PORT ? '✅ Set' : '⚠️  Missing (will use 587)'}`);
-      console.log(`   EMAIL_USER: ${process.env.EMAIL_USER ? '✅ Set' : '❌ Missing'}`);
-      console.log(`   EMAIL_PASS: ${process.env.EMAIL_PASS ? '✅ Set' : '❌ Missing'}`);
-      throw new Error('Email configuration is incomplete');
+    if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || 
+        !process.env.GMAIL_REFRESH_TOKEN || !process.env.GMAIL_USER) {
+      throw new Error('Gmail OAuth2 configuration missing (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, or GMAIL_USER)');
     }
 
-    console.log('\n📧 Email Send Request');
+    console.log('\n📧 Attempting Gmail API (OAuth2)');
     console.log('─'.repeat(50));
     console.log(`📬 To: ${options.email}`);
     console.log(`📝 Subject: ${options.subject}`);
-    console.log(`🌐 Host: ${process.env.EMAIL_HOST}`);
-    console.log(`👤 From: ${process.env.EMAIL_USER}`);
-    console.log(`🕐 Time: ${new Date().toISOString()}`);
+    console.log(`👤 From: ${process.env.GMAIL_USER}`);
 
-    // Create transporter with production-optimized settings
-    const port = parseInt(process.env.EMAIL_PORT) || 587;
-    const isSecure = port === 465;
-    
-    const transportConfig = {
-      host: process.env.EMAIL_HOST,
-      port: port,
-      secure: isSecure,
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GMAIL_CLIENT_ID,
+      process.env.GMAIL_CLIENT_SECRET,
+      'https://developers.google.com/oauthplayground' // Redirect URL
+    );
+
+    // Set credentials
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN
+    });
+
+    // Get access token
+    const accessToken = await oauth2Client.getAccessToken();
+
+    // Create transporter with OAuth2
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      // Production-optimized timeouts for Render
-      connectionTimeout: 60000,  // 60 seconds for cold starts
-      greetingTimeout: 30000,    // 30 seconds
-      socketTimeout: 60000,      // 60 seconds
-      // TLS settings
-      tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
-      },
-      // Disable connection pooling to prevent idle timeout errors
-      // Each email creates a fresh connection that closes immediately
-      pool: false,
-      // Debug mode in development
-      debug: process.env.NODE_ENV === 'development',
-      logger: process.env.NODE_ENV === 'development'
-    };
+        type: 'OAuth2',
+        user: process.env.GMAIL_USER,
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+        accessToken: accessToken.token
+      }
+    });
 
-    console.log(`🔧 Transport Config: Port ${port}, Secure: ${isSecure}`);
-    const transporter = nodemailer.createTransport(transportConfig);
-
-    // Email options
     const mailOptions = {
-      from: `Savishkar 2025 <${process.env.EMAIL_USER}>`,
+      from: `Savishkar 2025 <${process.env.GMAIL_USER}>`,
       to: options.email,
       subject: options.subject,
       html: options.html,
-      // Add text fallback
       text: options.text || options.html.replace(/<[^>]*>/g, '')
     };
 
-    // Send email with retry logic and timeout
-    console.log('📤 Sending email...');
     const info = await retryOperation(
       async () => {
         return await withTimeout(
           transporter.sendMail(mailOptions),
-          45000 // 45 second timeout per attempt
+          45000
         );
       },
-      3, // 3 retry attempts
-      2000 // 2 second initial delay
+      3,
+      2000
     );
     
-    const duration = Date.now() - startTime;
-    console.log('✅ Email sent successfully!');
+    console.log('✅ Email sent via Gmail API (OAuth2)!');
     console.log(`📨 Message ID: ${info.messageId}`);
-    console.log(`⏱️  Duration: ${duration}ms`);
     console.log(`📬 Delivered to: ${options.email}`);
     console.log('─'.repeat(50));
     
-    return info;
+    return { messageId: info.messageId, service: 'gmail-oauth2' };
+  } catch (error) {
+    console.error(`❌ Gmail API failed: ${error.message}`);
+    
+    // Provide specific troubleshooting
+    if (error.message.includes('invalid_grant') || error.message.includes('Token has been expired or revoked')) {
+      console.error('\n💡 OAUTH2 TOKEN ERROR:');
+      console.error('   • Refresh token has expired or been revoked');
+      console.error('   • Generate a new refresh token from OAuth Playground');
+      console.error('   • Visit: https://developers.google.com/oauthplayground');
+    } else if (error.message.includes('invalid_client')) {
+      console.error('\n💡 CLIENT CREDENTIALS ERROR:');
+      console.error('   • Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET');
+      console.error('   • Verify credentials in Google Cloud Console');
+    } else if (error.message.includes('configuration missing')) {
+      console.error('\n💡 CONFIGURATION ERROR:');
+      console.error('   • Required: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET');
+      console.error('   • Required: GMAIL_REFRESH_TOKEN, GMAIL_USER');
+      console.error('   • See EMAIL_SETUP.md for setup instructions');
+    }
+    
+    throw error;
+  }
+};
+
+// Main email sending function
+const sendEmail = async (options) => {
+  const startTime = Date.now();
+  
+  try {
+    console.log('\n📧 Email Send Request');
+    console.log('─'.repeat(50));
+    console.log(`🕐 Time: ${new Date().toISOString()}`);
+
+    // Send via Gmail API (OAuth2)
+    const result = await sendViaGmail(options);
+    const duration = Date.now() - startTime;
+    console.log(`⏱️  Total Duration: ${duration}ms`);
+    return result;
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('\n❌ Email Sending Failed');
@@ -124,31 +143,8 @@ const sendEmail = async (options) => {
     console.error(`📬 To: ${options.email}`);
     console.error(`⏱️  Duration: ${duration}ms`);
     console.error(`❌ Error: ${error.message}`);
-    
-    // Provide specific troubleshooting based on error type
-    if (error.message.includes('Invalid login') || error.message.includes('Username and Password not accepted')) {
-      console.error('\n💡 AUTHENTICATION ERROR:');
-      console.error('   • For Gmail: Use App Password, not regular password');
-      console.error('   • Enable 2FA: https://myaccount.google.com/security');
-      console.error('   • Generate App Password: https://myaccount.google.com/apppasswords');
-      console.error('   • Remove ALL spaces from App Password');
-      console.error('   • For SendGrid: Use "apikey" as EMAIL_USER and API key as EMAIL_PASS');
-    } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT') || error.message.includes('ECONNECTION')) {
-      console.error('\n💡 CONNECTION TIMEOUT:');
-      console.error('   • Verify EMAIL_HOST is correct');
-      console.error('   • Verify EMAIL_PORT (587 for TLS, 465 for SSL)');
-      console.error('   • On Render: Service may be cold starting (normal on free tier)');
-      console.error('   • Consider using SendGrid for better reliability');
-    } else if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
-      console.error('\n💡 HOST NOT FOUND:');
-      console.error('   • Check EMAIL_HOST spelling');
-      console.error('   • Gmail: smtp.gmail.com');
-      console.error('   • SendGrid: smtp.sendgrid.net');
-    }
-    
     console.error('─'.repeat(50));
     
-    // Re-throw with more context
     throw new Error(`Email delivery failed: ${error.message}`);
   }
 };
