@@ -122,7 +122,7 @@ export const emailWrapper = (content, title = 'Savishkar 2025') => {
     <div class="footer">
       <p style="margin: 0 0 10px 0; font-weight: 600; color: #FA812F;"><strong>Savishkar 2025</strong></p>
       <p style="margin: 0 0 10px 0; color: #666666;">Jhulelal College of Engineering & Research</p>
-      <p style="margin: 0 0 10px 0; color: #666666;">📧 savishkarjcer@gmail.com</p>
+      <p style="margin: 0 0 10px 0; color: #666666;">savishkarjcer@gmail.com</p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #999999;">
         This is an automated email. Please do not reply to this message.
       </p>
@@ -145,7 +145,7 @@ export const otpEmailTemplate = (otp, userName = 'User') => {
     <div class="otp-code">${otp}</div>
     
     <div class="info-box">
-      <p style="margin: 0; color: #FA812F; font-weight: 600;"><strong>📌 Important:</strong></p>
+      <p style="margin: 0; color: #FA812F; font-weight: 600;"><strong>Important:</strong></p>
       <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333333;">
         <li>This OTP is valid for <strong>10 minutes</strong></li>
         <li>Do not share this code with anyone</li>
@@ -169,7 +169,7 @@ export const otpEmailTemplate = (otp, userName = 'User') => {
  */
 export const welcomeEmailTemplate = (userName, userCode) => {
   const content = `
-    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">🎉 Welcome to Savishkar 2025!</h2>
+    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">Welcome to Savishkar 2025!</h2>
     <p style="font-size: 16px; color: #333333;">Hello <strong style="color: #FA812F;">${userName}</strong>,</p>
     <p style="color: #333333;">Congratulations! Your email has been verified successfully. Welcome to Savishkar 2025 - JCER's premier technical fest!</p>
     
@@ -183,7 +183,7 @@ export const welcomeEmailTemplate = (userName, userCode) => {
       </p>
     </div>
     
-    <h3 style="color: #FA812F; font-size: 20px;">🚀 Next Steps:</h3>
+    <h3 style="color: #FA812F; font-size: 20px;">Next Steps:</h3>
     <ol style="line-height: 1.8; color: #333333;">
       <li><strong style="color: #FA812F;">Browse Events:</strong> Explore exciting technical competitions</li>
       <li><strong style="color: #FA812F;">Register:</strong> Sign up for your favorite events</li>
@@ -212,7 +212,7 @@ export const welcomeEmailTemplate = (userName, userCode) => {
  */
 export const passwordResetTemplate = (resetUrl, userName = 'User') => {
   const content = `
-    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">🔐 Password Reset Request</h2>
+    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">Password Reset Request</h2>
     <p style="font-size: 16px; color: #333333;">Hello <strong style="color: #FA812F;">${userName}</strong>,</p>
     <p style="color: #333333;">We received a request to reset your password for your Savishkar 2025 account.</p>
     
@@ -223,7 +223,7 @@ export const passwordResetTemplate = (resetUrl, userName = 'User') => {
     </div>
     
     <div class="warning-box">
-      <p style="margin: 0; color: #DD0303; font-weight: 600;"><strong>⚠️ Security Notice:</strong></p>
+      <p style="margin: 0; color: #DD0303; font-weight: 600;"><strong>Security Notice:</strong></p>
       <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333333;">
         <li>This link is valid for <strong>1 hour</strong></li>
         <li>If you didn't request this, please ignore this email</li>
@@ -250,7 +250,7 @@ export const passwordResetTemplate = (resetUrl, userName = 'User') => {
  */
 export const userCodeTemplate = (userName, userCode) => {
   const content = `
-    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">📋 Your Savishkar 2025 Unique Code</h2>
+    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">Your Savishkar 2025 Unique Code</h2>
     <p style="font-size: 16px; color: #333333;">Hello <strong style="color: #FA812F;">${userName}</strong>,</p>
     <p style="color: #333333;">Here is your unique code for Savishkar 2025:</p>
     
@@ -282,14 +282,14 @@ export const userCodeTemplate = (userName, userCode) => {
  */
 export const newOtpTemplate = (otp, userName = 'User') => {
   const content = `
-    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">🔄 New OTP Request</h2>
+    <h2 style="color: #FA812F; margin-top: 0; font-size: 26px;">New OTP Request</h2>
     <p style="font-size: 16px; color: #333333;">Hello <strong style="color: #FA812F;">${userName}</strong>,</p>
     <p style="color: #333333;">You requested a new OTP for email verification. Here is your new code:</p>
     
     <div class="otp-code">${otp}</div>
     
     <div class="info-box">
-      <p style="margin: 0; color: #FA812F; font-weight: 600;"><strong>📌 Important:</strong></p>
+      <p style="margin: 0; color: #FA812F; font-weight: 600;"><strong>Important:</strong></p>
       <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333333;">
         <li>This OTP is valid for <strong>10 minutes</strong></li>
         <li>Previous OTP codes are now invalid</li>
