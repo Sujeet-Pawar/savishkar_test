@@ -44,7 +44,7 @@ GMAIL_USER=your_gmail@gmail.com
 **How to get Gmail OAuth2 credentials:**
 
 #### Step 1: Create Google Cloud Project
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+1. Go to [Google Cloud Console]()
 2. Create a new project or select existing one
 3. Enable **Gmail API**:
    - Go to "APIs & Services" → "Library"
@@ -74,9 +74,9 @@ GMAIL_USER=your_gmail@gmail.com
 
 #### Step 4: Add to .env
 ```env
-GMAIL_CLIENT_ID=123456789.apps.googleusercontent.com
-GMAIL_CLIENT_SECRET=GOCSPX-abc123def456
-GMAIL_REFRESH_TOKEN=1//abc123def456...
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your-client-secret
+GMAIL_REFRESH_TOKEN=your-refresh-token
 GMAIL_USER=your-email@gmail.com
 ```
 
@@ -84,10 +84,10 @@ GMAIL_USER=your-email@gmail.com
 
 ```env
 # Gmail API OAuth2
-GMAIL_CLIENT_ID=123456789-abc123def456.apps.googleusercontent.com
-GMAIL_CLIENT_SECRET=GOCSPX-abc123def456ghi789
-GMAIL_REFRESH_TOKEN=1//abc123def456ghi789jkl012mno345pqr678stu901vwx234yz
-GMAIL_USER=savishkar2025@gmail.com
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your-client-secret
+GMAIL_REFRESH_TOKEN=your-refresh-token
+GMAIL_USER=your-email@gmail.com
 ```
 
 ## Testing

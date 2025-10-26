@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
+
+/**
+ * Simple SMTP Email Service
+ * Uses Gmail SMTP with App Password (no OAuth required)
+ */
 
 // Helper function to add timeout to promises
 const withTimeout = (promise, timeoutMs) => {
@@ -31,95 +35,38 @@ const retryOperation = async (operation, maxRetries = 3, delay = 2000) => {
   }
 };
 
-// Send email via Gmail API (OAuth2)
-const sendViaGmail = async (options) => {
-  try {
-    if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || 
-        !process.env.GMAIL_REFRESH_TOKEN || !process.env.GMAIL_USER) {
-      throw new Error('Gmail OAuth2 configuration missing (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, or GMAIL_USER)');
-    }
-
-    console.log('\n📧 Attempting Gmail API (OAuth2)');
-    console.log('─'.repeat(50));
-    console.log(`📬 To: ${options.email}`);
-    console.log(`📝 Subject: ${options.subject}`);
-    console.log(`👤 From: ${process.env.GMAIL_USER}`);
-
-    // Create OAuth2 client
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GMAIL_CLIENT_ID,
-      process.env.GMAIL_CLIENT_SECRET,
-      'https://developers.google.com/oauthplayground' // Redirect URL
-    );
-
-    // Set credentials
-    oauth2Client.setCredentials({
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN
-    });
-
-    // Get access token
-    const accessToken = await oauth2Client.getAccessToken();
-
-    // Create transporter with OAuth2
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: process.env.GMAIL_USER,
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
-        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        accessToken: accessToken.token
-      }
-    });
-
-    const mailOptions = {
-      from: `Savishkar 2025 <${process.env.GMAIL_USER}>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, '')
-    };
-
-    const info = await retryOperation(
-      async () => {
-        return await withTimeout(
-          transporter.sendMail(mailOptions),
-          45000
-        );
-      },
-      3,
-      2000
-    );
-    
-    console.log('✅ Email sent via Gmail API (OAuth2)!');
-    console.log(`📨 Message ID: ${info.messageId}`);
-    console.log(`📬 Delivered to: ${options.email}`);
-    console.log('─'.repeat(50));
-    
-    return { messageId: info.messageId, service: 'gmail-oauth2' };
-  } catch (error) {
-    console.error(`❌ Gmail API failed: ${error.message}`);
-    
-    // Provide specific troubleshooting
-    if (error.message.includes('invalid_grant') || error.message.includes('Token has been expired or revoked')) {
-      console.error('\n💡 OAUTH2 TOKEN ERROR:');
-      console.error('   • Refresh token has expired or been revoked');
-      console.error('   • Generate a new refresh token from OAuth Playground');
-      console.error('   • Visit: https://developers.google.com/oauthplayground');
-    } else if (error.message.includes('invalid_client')) {
-      console.error('\n💡 CLIENT CREDENTIALS ERROR:');
-      console.error('   • Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET');
-      console.error('   • Verify credentials in Google Cloud Console');
-    } else if (error.message.includes('configuration missing')) {
-      console.error('\n💡 CONFIGURATION ERROR:');
-      console.error('   • Required: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET');
-      console.error('   • Required: GMAIL_REFRESH_TOKEN, GMAIL_USER');
-      console.error('   • See EMAIL_SETUP.md for setup instructions');
-    }
-    
-    throw error;
+// Create SMTP transporter
+const createTransporter = () => {
+  // Check for required environment variables
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('EMAIL_USER and EMAIL_PASS are required in .env file');
   }
+
+  const port = parseInt(process.env.EMAIL_PORT) || 587;
+  
+  const config = {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: port,
+    secure: port === 465, // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    tls: {
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
+    },
+    connectionTimeout: 60000,  // 60 seconds
+    greetingTimeout: 30000,    // 30 seconds
+    socketTimeout: 60000,      // 60 seconds
+    pool: true,                // Use pooled connections
+    maxConnections: 5,         // Max simultaneous connections
+    maxMessages: 100,          // Max messages per connection
+    rateDelta: 1000,           // Time window for rate limiting
+    rateLimit: 5               // Max messages per rateDelta
+  };
+
+  return nodemailer.createTransport(config);
 };
 
 // Main email sending function
@@ -130,19 +77,103 @@ const sendEmail = async (options) => {
     console.log('\n📧 Email Send Request');
     console.log('─'.repeat(50));
     console.log(`🕐 Time: ${new Date().toISOString()}`);
+    console.log(`📬 To: ${options.email}`);
+    console.log(`📝 Subject: ${options.subject}`);
+    console.log(`👤 From: ${process.env.EMAIL_USER}`);
+    console.log(`🌐 SMTP Host: ${process.env.EMAIL_HOST || 'smtp.gmail.com'}`);
+    console.log(`🔌 Port: ${process.env.EMAIL_PORT || 587}`);
 
-    // Send via Gmail API (OAuth2)
-    const result = await sendViaGmail(options);
+    // Create transporter
+    const transporter = createTransporter();
+
+    // Prepare mail options with proper headers to avoid spam
+    const mailOptions = {
+      from: {
+        name: 'Savishkar 2025',
+        address: process.env.EMAIL_USER
+      },
+      to: options.email,
+      subject: options.subject,
+      html: options.html,
+      text: options.text || options.html.replace(/<[^>]*>/g, ''),
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high',
+        'X-Mailer': 'Savishkar Techfest',
+        'Reply-To': process.env.EMAIL_USER
+      },
+      // Add List-Unsubscribe header (helps with deliverability)
+      list: {
+        unsubscribe: {
+          url: process.env.CLIENT_URL || 'http://localhost:5173',
+          comment: 'Unsubscribe'
+        }
+      }
+    };
+
+    // Send email with retry logic
+    const info = await retryOperation(
+      async () => {
+        return await withTimeout(
+          transporter.sendMail(mailOptions),
+          45000 // 45 second timeout
+        );
+      },
+      3, // 3 retries
+      2000 // 2 second delay between retries
+    );
+    
     const duration = Date.now() - startTime;
-    console.log(`⏱️  Total Duration: ${duration}ms`);
-    return result;
+    
+    console.log('✅ Email sent successfully!');
+    console.log(`📨 Message ID: ${info.messageId}`);
+    console.log(`📬 Delivered to: ${options.email}`);
+    console.log(`⏱️  Duration: ${duration}ms`);
+    console.log('─'.repeat(50));
+    
+    return { 
+      messageId: info.messageId, 
+      service: 'smtp',
+      duration: duration
+    };
   } catch (error) {
     const duration = Date.now() - startTime;
+    
     console.error('\n❌ Email Sending Failed');
     console.error('─'.repeat(50));
     console.error(`📬 To: ${options.email}`);
     console.error(`⏱️  Duration: ${duration}ms`);
     console.error(`❌ Error: ${error.message}`);
+    
+    // Provide specific troubleshooting
+    if (error.message.includes('Invalid login') || error.message.includes('Username and Password not accepted')) {
+      console.error('\n💡 AUTHENTICATION ERROR:');
+      console.error('   • For Gmail: Use App Password, NOT regular password');
+      console.error('   • Steps:');
+      console.error('     1. Enable 2FA: https://myaccount.google.com/security');
+      console.error('     2. Generate App Password: https://myaccount.google.com/apppasswords');
+      console.error('     3. Use the 16-character App Password in EMAIL_PASS');
+      console.error('     4. Remove all spaces from the App Password');
+    } else if (error.message.includes('ECONNECTION') || error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+      console.error('\n💡 CONNECTION ERROR:');
+      console.error('   • Check EMAIL_HOST (default: smtp.gmail.com)');
+      console.error('   • Check EMAIL_PORT (587 for TLS, 465 for SSL)');
+      console.error('   • Check firewall/network settings');
+      console.error('   • Verify internet connection');
+    } else if (error.message.includes('EAUTH')) {
+      console.error('\n💡 AUTHENTICATION ERROR:');
+      console.error('   • Verify EMAIL_USER is correct (full email address)');
+      console.error('   • Verify EMAIL_PASS is correct (App Password for Gmail)');
+      console.error('   • Check for typos or extra spaces');
+    } else if (error.message.includes('required in .env')) {
+      console.error('\n💡 CONFIGURATION ERROR:');
+      console.error('   • Add EMAIL_USER=your-email@gmail.com to .env');
+      console.error('   • Add EMAIL_PASS=your-app-password to .env');
+      console.error('   • Optional: EMAIL_HOST=smtp.gmail.com');
+      console.error('   • Optional: EMAIL_PORT=587');
+    }
+    
     console.error('─'.repeat(50));
     
     throw new Error(`Email delivery failed: ${error.message}`);

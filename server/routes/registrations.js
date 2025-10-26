@@ -1008,6 +1008,7 @@ router.get('/export/:eventId', protect, authorize('admin'), async (req, res) => 
       { header: 'Team Size', key: 'teamSize', width: 12 },
       { header: 'Amount', key: 'amount', width: 12 },
       { header: 'Payment Status', key: 'paymentStatus', width: 18 },
+      { header: 'QR Code Used', key: 'qrCodeUsed', width: 25 },
       { header: 'UTR Number', key: 'utrNumber', width: 18 },
       { header: 'Payment Date', key: 'paymentDate', width: 20 },
       { header: 'Registration Date', key: 'regDate', width: 20 },
@@ -1037,6 +1038,23 @@ router.get('/export/:eventId', protect, authorize('admin'), async (req, res) => 
         paymentStatusDisplay = 'REJECTED';
       }
       
+      // Get QR code information
+      let qrCodeInfo = 'N/A';
+      if (payment?.qrCodeUsed) {
+        const qrData = payment.qrCodeUsed;
+        if (qrData.accountName && qrData.upiId) {
+          qrCodeInfo = `${qrData.accountName} (${qrData.upiId})`;
+        } else if (qrData.accountName) {
+          qrCodeInfo = qrData.accountName;
+        } else if (qrData.upiId) {
+          qrCodeInfo = qrData.upiId;
+        }
+        // Add QR index if available
+        if (qrData.qrIndex !== undefined && qrData.qrIndex !== null) {
+          qrCodeInfo += ` [QR ${qrData.qrIndex + 1}]`;
+        }
+      }
+      
       const row = worksheet.addRow({
         sno: index + 1,
         regNo: reg.registrationNumber,
@@ -1049,6 +1067,7 @@ router.get('/export/:eventId', protect, authorize('admin'), async (req, res) => 
         teamSize: reg.teamMembers?.length || 1,
         amount: `₹${reg.amount}`,
         paymentStatus: paymentStatusDisplay,
+        qrCodeUsed: qrCodeInfo,
         utrNumber: payment?.utrNumber || 'N/A',
         paymentDate: payment?.paidAt ? new Date(payment.paidAt).toLocaleDateString('en-IN') : 'N/A',
         regDate: new Date(reg.registrationDate).toLocaleDateString('en-IN'),

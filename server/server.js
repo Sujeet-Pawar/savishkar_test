@@ -258,6 +258,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Keep-alive endpoint (lightweight, no database queries)
+app.get('/api/keep-alive', (req, res) => {
+  res.status(200).json({ 
+    alive: true,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -278,10 +287,18 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API URL: http://localhost:${PORT}/api`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Start keep-alive service
+  try {
+    const keepAliveService = (await import('./utils/keepAlive.js')).default;
+    keepAliveService.start();
+  } catch (error) {
+    console.error('⚠️  Failed to start keep-alive service:', error.message);
+  }
 });
 
 export default app;

@@ -52,6 +52,13 @@ const paymentSchema = new mongoose.Schema({
   },
   rejectionReason: String,
   
+  // QR Code tracking
+  qrCodeUsed: {
+    upiId: String,
+    accountName: String,
+    qrIndex: Number
+  },
+  
   status: {
     type: String,
     enum: ['created', 'captured', 'failed', 'refunded'],
