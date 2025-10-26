@@ -113,7 +113,7 @@ export const emailWrapper = (content, title = 'Savishkar 2025') => {
 <body>
   <div class="email-container">
     <div class="header">
-      <h1 style="margin: 0; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">🎓 Savishkar 2025</h1>
+      <h1 style="margin: 0; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">Savishkar 2025</h1>
       <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.95; letter-spacing: 1px;">JCER Technical Fest</p>
     </div>
     <div class="content">
